@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KeyBoard Warriors — Task Manager (100% Keyboard)</title>
+    <meta
+      name="description"
+      content="A 100% keyboard-driven kanban-style task manager. No mouse needed. Vanilla HTML/CSS/JS."
+    />
+    <style>
+      :root {
+        --bg: #0b0f14;
+        --panel: #121822;
+        --muted: #9fb0c0;
+        --text: #eaf2f9;
+        --accent: #6ee7b7; /* green */
+        --accent-2: #60a5fa; /* blue */
+        --warn: #fb7185; /* rose */
+        --border: #223042;
+        --ring: #f59e0b; /* amber */
+        --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        background: linear-gradient(180deg, #0b0f14 0%, #0a1320 100%);
+        color: var(--text);
+        font: 15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu,
+          Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji',
+          'Segoe UI Emoji';
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        backdrop-filter: blur(6px);
+        background: rgba(10, 19, 32, 0.7);
+        border-bottom: 1px solid var(--border);
+      }
+      .wrap {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 16px;
+      }
+      .titlebar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .badge {
+        padding: 4px 10px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        color: var(--muted);
+      }
+      .kbd {
+        font-weight: 700;
+      }
+      .spacer {
+        flex: 1;
+      }
+      #search {
+        width: 360px;
+        max-width: 60vw;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--text);
+        outline: none;
+      }
+      #search:focus {
+        border-color: var(--accent-2);
+        box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.25);
+      }
+
+      /* Board */
+      #board {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        align-items: start;
+        max-width: 1180px;
+        margin: 16px auto;
+        padding: 0 16px 24px;
+      }
+      .column {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+        min-height: 300px;
+        display: flex;
+        flex-direction: column;
+      }
+      .col-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border);
+      }
+      .col-head h2 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+      }
+      .count {
+        color: var(--muted);
+        font-size: 12px;
+        padding: 2px 8px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+      }
+
+      .list {
+        list-style: none;
+        margin: 0;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .card {
+        background: #0e1520;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 10px 12px;
+        cursor: default;
+        outline: none;
+      }
+      .card .title {
+        margin: 0;
+        font-size: 14px;
+      }
+      .card.done {
+        opacity: 0.8;
+        border-color: rgba(110, 231, 183, 0.3);
+      }
+      .card.done .title {
+        text-decoration: line-through;
+        color: #a6f3d7;
+      }
+
+      .selected {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(110, 231, 183, 0.25);
+      }
+      .selected .title {
+        color: #d8fff1;
+      }
+      .selected-col {
+        outline: 2px dashed var(--accent-2);
+        outline-offset: -6px;
+      }
+
+      footer {
+        max-width: 1180px;
+        margin: 8px auto 24px;
+        color: var(--muted);
+        padding: 0 16px;
+      }
+
+      /* Help modal */
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(3, 6, 12, 0.6);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 50;
+      }
+      .overlay.show {
+        display: flex;
+      }
+      .modal {
+        width: min(900px, 92vw);
+        max-height: 80vh;
+        overflow: auto;
+        background: #0f1724;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+      }
+      .modal header {
+        position: sticky;
+        top: 0;
+        background: #0f1724;
+        border-bottom: 1px solid var(--border);
+      }
+      .modal .content {
+        padding: 12px 16px 18px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        border-bottom: 1px solid var(--border);
+        padding: 8px 6px;
+        text-align: left;
+      }
+      th {
+        color: #b9c9db;
+        font-weight: 700;
+      }
+      code.k {
+        padding: 2px 6px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: #0b1220;
+        font-weight: 700;
+      }
+
+      /* Toast */
+      .toast {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #101826;
+        color: var(--text);
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        display: none;
+        z-index: 60;
+      }
+      .toast.show {
+        display: block;
+      }
+
+      /* Hidden utility */
+      .hidden {
+        display: none !important;
+      }
+
+      /* Focus ring for any focusable */
+      :focus-visible {
+        outline: 2px solid var(--ring);
+        outline-offset: 2px;
+      }
+
+      /* Header buttons (text-only but focusable) */
+      .btn {
+        border: 1px solid var(--border);
+        background: #0d1522;
+        color: var(--text);
+        padding: 8px 10px;
+        border-radius: 10px;
+        cursor: default;
+      }
+      .btn:focus-visible {
+        outline: 2px solid var(--accent-2);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap titlebar" aria-label="App toolbar">
+        <span class="badge">Web Warriors · Vanilla</span>
+        <h1 style="margin: 0; font-size: 18px">Keyboard-Only Task Manager</h1>
+        <span class="spacer"></span>
+        <button
+          class="btn"
+          id="btnHelp"
+          aria-haspopup="dialog"
+          title="Show shortcuts (press ?)"
+        >
+          Shortcuts ?
+        </button>
+        <input
+          id="search"
+          type="text"
+          autocomplete="off"
+          role="searchbox"
+          aria-label="Search tasks (press / to focus)"
+          placeholder="Press / then type to filter…"
+        />
+      </div>
+    </header>
+
+    <main id="board" aria-label="Kanban Board" aria-live="polite">
+      <!-- Columns generated by JS -->
+    </main>
+
+    <footer>
+      <p>
+        <strong>Rule check:</strong> Unplug your mouse. Everything works by
+        keyboard. Try: <span class="kbd">A</span> add ·
+        <span class="kbd">←/→</span> switch column ·
+        <span class="kbd">↑/↓</span> move selection ·
+        <span class="kbd">Enter</span> edit ·
+        <span class="kbd">Space</span> done · <span class="kbd">M</span> move ·
+        <span class="kbd">/</span> search · <span class="kbd">?</span> help.
+      </p>
+    </footer>
+
+    <!-- Help Modal -->
+    <div
+      class="overlay"
+      id="helpOverlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="helpTitle"
+    >
+      <div class="modal">
+        <header class="wrap">
+          <h2 id="helpTitle" style="margin: 8px 0">Keyboard Shortcuts</h2>
+        </header>
+        <div class="content">
+          <table aria-label="Shortcut table">
+            <thead>
+              <tr>
+                <th>Action</th>
+                <th>Shortcut</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Add task</td>
+                <td><code class="k">A</code></td>
+              </tr>
+              <tr>
+                <td>Edit task / Save</td>
+                <td><code class="k">Enter</code></td>
+              </tr>
+              <tr>
+                <td>Delete task</td>
+                <td><code class="k">Delete</code></td>
+              </tr>
+              <tr>
+                <td>Mark done / toggle</td>
+                <td><code class="k">Space</code></td>
+              </tr>
+              <tr>
+                <td>Move task between columns</td>
+                <td>
+                  <code class="k">M</code> then <code class="k">←/→</code> and
+                  <code class="k">Enter</code>
+                </td>
+              </tr>
+              <tr>
+                <td>Switch column</td>
+                <td><code class="k">←</code> / <code class="k">→</code></td>
+              </tr>
+              <tr>
+                <td>Move selection</td>
+                <td><code class="k">↑</code> / <code class="k">↓</code></td>
+              </tr>
+              <tr>
+                <td>Reorder task</td>
+                <td>
+                  <code class="k">Ctrl</code> + <code class="k">↑</code> /
+                  <code class="k">↓</code>
+                </td>
+              </tr>
+              <tr>
+                <td>Search</td>
+                <td>
+                  <code class="k">/</code> (focus), type to filter,
+                  <code class="k">Esc</code> to clear
+                </td>
+              </tr>
+              <tr>
+                <td>New board</td>
+                <td><code class="k">Ctrl</code> + <code class="k">N</code></td>
+              </tr>
+              <tr>
+                <td>Switch boards</td>
+                <td>
+                  <code class="k">Ctrl</code> + <code class="k">Tab</code> /
+                  <code class="k">Ctrl</code> + <code class="k">Shift</code> +
+                  <code class="k">Tab</code>
+                </td>
+              </tr>
+              <tr>
+                <td>Delete board</td>
+                <td>
+                  <code class="k">Ctrl</code> + <code class="k">Delete</code>
+                </td>
+              </tr>
+              <tr>
+                <td>Help</td>
+                <td><code class="k">?</code> (toggle)</td>
+              </tr>
+            </tbody>
+          </table>
+          <p style="color: var(--muted); margin-top: 10px">
+            Tip: This app persists to your browser (localStorage). Refresh safe.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="overlay"
+      id="inputOverlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="inputTitle"
+    >
+      <div class="modal">
+        <header class="wrap">
+          <h2 id="inputTitle" style="margin: 8px 0">Add / Edit Task</h2>
+        </header>
+        <div class="content">
+          <label
+            for="taskInput"
+            style="display: block; margin-bottom: 6px; color: var(--muted)"
+            >Task title</label
+          >
+          <input
+            id="taskInput"
+            type="text"
+            autocomplete="off"
+            style="
+              width: 100%;
+              padding: 12px;
+              border-radius: 12px;
+              border: 1px solid var(--border);
+              background: #0b1220;
+              color: var(--text);
+            "
+          />
+          <p style="color: var(--muted); margin-top: 8px">
+            Press <code class="k">Enter</code> to save ·
+            <code class="k">Esc</code> to cancel
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <!-- <script>
+      // ======= State =======
+      const DEFAULT_COLUMNS = [
+        { id: 'todo', name: 'To Do' },
+        { id: 'inprogress', name: 'In Progress' },
+        { id: 'done', name: 'Done' },
+      ]
+
+      const STORAGE_KEY = 'kbw_boards_v1'
+
+      /**
+       * State shape:
+       * {
+       *   boards: [{ id, name, columns: {todo:[], inprogress:[], done:[]} }],
+       *   currentBoardIndex: 0,
+       *   focus: { colIndex: 0, itemIndex: 0 },
+       *   filter: ''
+       * }
+       */
+      const state = loadState() || initState()
+
+      function initState() {
+        return {
+          boards: [
+            {
+              id: uid(),
+              name: 'My Board',
+              columns: {
+                todo: [{ id: uid(), title: 'Welcome! Press A to add a task.' }],
+                inprogress: [],
+                done: [],
+              },
+            },
+          ],
+          currentBoardIndex: 0,
+          focus: { colIndex: 0, itemIndex: 0 },
+          filter: '',
+        }
+      }
+
+      function uid() {
+        return Math.random().toString(36).slice(2, 9)
+      }
+
+      function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+      }
+      function loadState() {
+        try {
+          return JSON.parse(localStorage.getItem(STORAGE_KEY))
+        } catch (e) {
+          return null
+        }
+      }
+
+      // ======= Rendering =======
+      const boardEl = document.getElementById('board')
+      const searchEl = document.getElementById('search')
+      const helpOverlay = document.getElementById('helpOverlay')
+      const inputOverlay = document.getElementById('inputOverlay')
+      const taskInput = document.getElementById('taskInput')
+      const btnHelp = document.getElementById('btnHelp')
+      const toastEl = document.getElementById('toast')
+
+      btnHelp.addEventListener('click', () => toggleHelp(true))
+
+      function getCurrentBoard() {
+        return state.boards[state.currentBoardIndex]
+      }
+
+      function render() {
+        const b = getCurrentBoard()
+        boardEl.innerHTML = ''
+
+        DEFAULT_COLUMNS.forEach((col, cIndex) => {
+          const wrapper = document.createElement('section')
+          wrapper.className = 'column'
+          wrapper.dataset.column = col.id
+          wrapper.setAttribute('aria-label', col.name)
+          if (state.focus.colIndex === cIndex)
+            wrapper.classList.add('selected-col')
+
+          const head = document.createElement('div')
+          head.className = 'col-head'
+          const h2 = document.createElement('h2')
+          h2.textContent = col.name
+          const count = document.createElement('span')
+          const tasksInCol = b.columns[col.id]
+          const filtered = applyFilter(tasksInCol, state.filter)
+          count.className = 'count'
+          count.textContent = `${filtered.length}`
+          head.append(h2, count)
+
+          const ul = document.createElement('ul')
+          ul.className = 'list'
+
+          filtered.forEach((t, i) => {
+            const li = document.createElement('li')
+            li.className = 'card' + (t.done ? ' done' : '')
+            if (
+              state.focus.colIndex === cIndex &&
+              state.focus.itemIndex === i
+            ) {
+              li.classList.add('selected')
+              // Scroll into view if offscreen
+              setTimeout(
+                () =>
+                  li.scrollIntoView({ block: 'nearest', behavior: 'smooth' }),
+                0
+              )
+            }
+            li.tabIndex = -1 // programmatic focus only
+            li.dataset.id = t.id
+            li.innerHTML = `<p class="title">${escapeHtml(t.title)}</p>`
+            ul.appendChild(li)
+          })
+
+          wrapper.append(head, ul)
+          boardEl.appendChild(wrapper)
+        })
+
+        updateTitlebar()
+        saveState()
+      }
+
+      function updateTitlebar() {
+        document.title = `KB Warriors – ${getCurrentBoard().name}`
+      }
+
+      function escapeHtml(str) {
+        return str.replace(
+          /[&<>"']/g,
+          (s) =>
+            ({
+              '&': '&amp;',
+              '<': '&lt;',
+              '>': '&gt;',
+              '"': '&quot;',
+              "'": '&#39;',
+            }[s])
+        )
+      }
+
+      function applyFilter(list, q) {
+        if (!q) return list
+        q = q.toLowerCase()
+        return list.filter((t) => t.title.toLowerCase().includes(q))
+      }
+
+      // ======= Keyboard Handling =======
+      document.addEventListener('keydown', onKey)
+
+      function onKey(e) {
+        // If input overlays are open, handle there
+        if (helpOverlay.classList.contains('show')) {
+          if (e.key === '?' || e.key === 'Escape') {
+            e.preventDefault()
+            toggleHelp(false)
+          }
+          return
+        }
+
+        if (inputOverlay.classList.contains('show')) {
+          if (e.key === 'Escape') {
+            e.preventDefault()
+            closeInput()
+          }
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            submitInput()
+          }
+          return
+        }
+
+        // If focused in search, allow typing, but Esc clears
+        if (document.activeElement === searchEl) {
+          if (e.key === 'Escape') {
+            searchEl.value = ''
+            state.filter = ''
+            render()
+            announce('Search cleared')
+            searchEl.blur()
+          }
+          return // no global keys
+        }
+
+        // Global shortcuts
+        if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault()
+          searchEl.focus()
+          return
+        }
+        if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+          e.preventDefault()
+          toggleHelp()
+          return
+        }
+
+        if (e.ctrlKey && e.key.toLowerCase() === 'n') {
+          e.preventDefault()
+          newBoard()
+          return
+        }
+        if (e.ctrlKey && e.key === 'Delete') {
+          e.preventDefault()
+          deleteBoard()
+          return
+        }
+        if (e.ctrlKey && e.key === 'Tab') {
+          e.preventDefault()
+          switchBoard(e.shiftKey ? -1 : 1)
+          return
+        }
+
+        const { colIndex, itemIndex } = state.focus
+
+        switch (e.key) {
+          case 'ArrowLeft':
+            e.preventDefault()
+            moveFocusColumn(-1)
+            break
+          case 'ArrowRight':
+            e.preventDefault()
+            moveFocusColumn(1)
+            break
+          case 'ArrowUp':
+            e.preventDefault()
+            moveFocusItem(-1)
+            break
+          case 'ArrowDown':
+            e.preventDefault()
+            moveFocusItem(1)
+            break
+          case 'A':
+          case 'a':
+            e.preventDefault()
+            openInput('add')
+            break
+          case 'Enter':
+            e.preventDefault()
+            openInput('edit')
+            break
+          case 'Delete':
+            e.preventDefault()
+            deleteTask()
+            break
+          case ' ':
+            e.preventDefault()
+            toggleDone()
+            break // Space
+          case 'M':
+          case 'm':
+            e.preventDefault()
+            startMoveMode()
+            break
+          default:
+            if (e.ctrlKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+              e.preventDefault()
+              reorderTask(e.key === 'ArrowUp' ? -1 : 1)
+            }
+            break
+        }
+      }
+
+      // ======= Focus & Navigation =======
+      function moveFocusColumn(dir) {
+        const max = DEFAULT_COLUMNS.length - 1
+        let next = clamp(state.focus.colIndex + dir, 0, max)
+        state.focus.colIndex = next
+        state.filter = '' // Clear filter when changing columns
+        clampItemIndex()
+        render()
+      }
+
+      function moveFocusItem(dir) {
+        const b = getCurrentBoard()
+        const colId = DEFAULT_COLUMNS[state.focus.colIndex].id
+        const list = applyFilter(b.columns[colId], state.filter)
+        const max = Math.max(0, list.length - 1)
+        let next = clamp(state.focus.itemIndex + dir, 0, max)
+        state.focus.itemIndex = next
+        render()
+      }
+
+      function clampItemIndex() {
+        const b = getCurrentBoard()
+        const colId = DEFAULT_COLUMNS[state.focus.colIndex].id
+        const list = applyFilter(b.columns[colId], state.filter)
+        const max = Math.max(0, list.length - 1)
+        state.focus.itemIndex = clamp(state.focus.itemIndex, 0, max)
+      }
+
+      function clamp(v, min, max) {
+        return Math.max(min, Math.min(max, v))
+      }
+
+      // ======= Tasks =======
+      function currentListAndIndex() {
+        const b = getCurrentBoard()
+        const col = DEFAULT_COLUMNS[state.focus.colIndex].id
+        const all = b.columns[col]
+        // Need to map filtered index back to original index if filter applied
+        if (!state.filter) {
+          return { list: all, index: state.focus.itemIndex, colId: col }
+        }
+        const filtered = applyFilter(all, state.filter)
+        const filteredItem = filtered[state.focus.itemIndex]
+        const index = all.findIndex(
+          (t) => t && filteredItem && t.id === filteredItem.id
+        )
+        return { list: all, index, colId: col }
+      }
+
+      function addTask(title) {
+        const b = getCurrentBoard()
+        const colId = DEFAULT_COLUMNS[state.focus.colIndex].id
+        b.columns[colId].push({ id: uid(), title })
+        state.focus.itemIndex =
+          applyFilter(b.columns[colId], state.filter).length - 1
+        render()
+        announce('Task added')
+      }
+
+      function editTask(newTitle) {
+        const { list, index } = currentListAndIndex()
+        if (index < 0 || !list[index]) return
+        list[index].title = newTitle
+        render()
+        announce('Task edited')
+      }
+
+      function deleteTask() {
+        const { list, index } = currentListAndIndex()
+        if (index < 0 || !list[index]) return
+        const removed = list.splice(index, 1)
+        clampItemIndex()
+        render()
+        if (removed.length) announce('Task deleted')
+      }
+
+      function toggleDone() {
+        const { list, index } = currentListAndIndex()
+        if (index < 0 || !list[index]) return
+        list[index].done = !list[index].done
+        render()
+        announce(list[index].done ? 'Marked done' : 'Marked not done')
+      }
+
+      function reorderTask(dir) {
+        const { list, index } = currentListAndIndex()
+        if (index < 0 || !list[index]) return
+        const target = clamp(index + dir, 0, list.length - 1)
+        if (target === index) return
+        const [item] = list.splice(index, 1)
+        list.splice(target, 0, item)
+        state.focus.itemIndex = target
+        render()
+        announce('Task moved')
+      }
+
+      function startMoveMode() {
+        showToast(
+          'Move mode: use ←/→ to pick column, Enter to confirm, Esc to cancel'
+        )
+        const onMoveKey = (e) => {
+          if (e.key === 'Escape') {
+            e.preventDefault()
+            hideToast()
+            document.removeEventListener('keydown', onMoveKey, true)
+            return
+          }
+          const { list, index, colId } = currentListAndIndex()
+          if (index < 0) return
+          if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            e.preventDefault()
+            const cur = DEFAULT_COLUMNS.findIndex((c) => c.id === colId)
+            const dir = e.key === 'ArrowLeft' ? -1 : 1
+            const nextColIndex = clamp(cur + dir, 0, DEFAULT_COLUMNS.length - 1)
+            if (nextColIndex !== cur) {
+              const nextColId = DEFAULT_COLUMNS[nextColIndex].id
+              const [item] = list.splice(index, 1)
+              getCurrentBoard().columns[nextColId].push(item)
+              state.focus.colIndex = nextColIndex
+              state.focus.itemIndex = 0 // Set to 0 to focus on the first item in the new column
+              render()
+            }
+          }
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            hideToast()
+            document.removeEventListener('keydown', onMoveKey, true)
+            announce('Task moved to new column')
+          }
+        }
+        document.addEventListener('keydown', onMoveKey, true)
+      }
+
+      // ======= Overlays =======
+      function toggleHelp(force) {
+        const show =
+          typeof force === 'boolean'
+            ? force
+            : !helpOverlay.classList.contains('show')
+        helpOverlay.classList.toggle('show', show)
+        if (show) {
+          // Move focus inside dialog
+          helpOverlay.querySelector('.modal').focus({ preventScroll: true })
+        }
+      }
+
+      function openInput(mode) {
+        inputOverlay.dataset.mode = mode // 'add' or 'edit'
+        const current = currentTaskTitle()
+        taskInput.value = mode === 'edit' ? current || '' : ''
+        inputOverlay.classList.add('show')
+        setTimeout(() => taskInput.focus(), 0)
+      }
+
+      function closeInput() {
+        inputOverlay.classList.remove('show')
+        taskInput.blur()
+      }
+
+      function currentTaskTitle() {
+        const { list, index } = currentListAndIndex()
+        return index >= 0 && list[index] ? list[index].title : ''
+      }
+
+      function submitInput() {
+        const mode = inputOverlay.dataset.mode
+        const value = taskInput.value.trim()
+        if (!value) {
+          closeInput()
+          return
+        }
+        if (mode === 'add') addTask(value)
+        else editTask(value)
+        closeInput()
+      }
+
+      // ======= Boards =======
+      function newBoard() {
+        const name = prompt('Board name?')
+        if (!name) return
+        state.boards.push({
+          id: uid(),
+          name,
+          columns: { todo: [], inprogress: [], done: [] },
+        })
+        state.currentBoardIndex = state.boards.length - 1
+        state.focus = { colIndex: 0, itemIndex: 0 }
+        render()
+        announce('Board created')
+      }
+
+      function deleteBoard() {
+        if (state.boards.length === 1) {
+          announce('Cannot delete the only board')
+          return
+        }
+        const ok = confirm(`Delete board: ${getCurrentBoard().name}?`)
+        if (!ok) return
+        state.boards.splice(state.currentBoardIndex, 1)
+        state.currentBoardIndex = Math.max(0, state.currentBoardIndex - 1)
+        state.focus = { colIndex: 0, itemIndex: 0 }
+        render()
+        announce('Board deleted')
+      }
+
+      function switchBoard(delta) {
+        const n = state.boards.length
+        state.currentBoardIndex = (state.currentBoardIndex + delta + n) % n
+        state.focus = { colIndex: 0, itemIndex: 0 }
+        render()
+        showToast(`Board: ${getCurrentBoard().name}`)
+      }
+
+      // ======= Search =======
+      searchEl.addEventListener('input', () => {
+        state.filter = searchEl.value.trim()
+        state.focus.itemIndex = 0
+        render()
+      })
+
+      // ======= Toast =======
+      let toastTimer = null
+      function showToast(msg) {
+        toastEl.textContent = msg
+        toastEl.classList.add('show')
+        clearTimeout(toastTimer)
+        toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200)
+      }
+      function hideToast() {
+        toastEl.classList.remove('show')
+      }
+      function announce(msg) {
+        showToast(msg)
+      }
+
+      // ======= Init =======
+      render()
+      // Give quick guidance on first load
+      setTimeout(
+        () => showToast('Tip: Press ? for shortcuts. Press A to add a task.'),
+        800
+      )
+    </script> -->
+    <script>
+      // ======= State =======
+      const DEFAULT_COLUMNS = [
+        { id: 'todo', name: 'To Do' },
+        { id: 'inprogress', name: 'In Progress' },
+        { id: 'done', name: 'Done' },
+      ]
+
+      const STORAGE_KEY = 'kbw_boards_v1'
+
+      /**
+       * State shape:
+       * {
+       *   boards: [{ id, name, columns: {todo:[], inprogress:[], done:[]} }],
+       *   currentBoardIndex: 0,
+       *   focus: { colIndex: 0, itemIndex: 0 },
+       *   filter: ''
+       * }
+       */
+      const state = loadState() || initState()
+
+      // prevent duplicate move-mode listeners
+      let moveModeActive = false
+
+      function initState() {
+        return {
+          boards: [
+            {
+              id: uid(),
+              name: 'My Board',
+              columns: {
+                todo: [{ id: uid(), title: 'Welcome! Press A to add a task.' }],
+                inprogress: [],
+                done: [],
+              },
+            },
+          ],
+          currentBoardIndex: 0,
+          focus: { colIndex: 0, itemIndex: 0 },
+          filter: '',
+        }
+      }
+
+      function uid() {
+        return Math.random().toString(36).slice(2, 9)
+      }
+
+      function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+      }
+      function loadState() {
+        try {
+          return JSON.parse(localStorage.getItem(STORAGE_KEY))
+        } catch (e) {
+          return null
+        }
+      }
+
+      // ======= Rendering =======
+      const boardEl = document.getElementById('board')
+      const searchEl = document.getElementById('search')
+      const helpOverlay = document.getElementById('helpOverlay')
+      const inputOverlay = document.getElementById('inputOverlay')
+      const taskInput = document.getElementById('taskInput')
+      const btnHelp = document.getElementById('btnHelp')
+      const toastEl = document.getElementById('toast')
+
+      btnHelp.addEventListener('click', () => toggleHelp(true))
+
+      function getCurrentBoard() {
+        return state.boards[state.currentBoardIndex]
+      }
+
+      function render() {
+        const b = getCurrentBoard()
+        boardEl.innerHTML = ''
+
+        DEFAULT_COLUMNS.forEach((col, cIndex) => {
+          const wrapper = document.createElement('section')
+          wrapper.className = 'column'
+          wrapper.dataset.column = col.id
+          wrapper.setAttribute('aria-label', col.name)
+          if (state.focus.colIndex === cIndex)
+            wrapper.classList.add('selected-col')
+
+          const head = document.createElement('div')
+          head.className = 'col-head'
+          const h2 = document.createElement('h2')
+          h2.textContent = col.name
+          const count = document.createElement('span')
+          const tasksInCol = b.columns[col.id]
+          const filtered = applyFilter(tasksInCol, state.filter)
+          count.className = 'count'
+          count.textContent = `${filtered.length}`
+          head.append(h2, count)
+
+          const ul = document.createElement('ul')
+          ul.className = 'list'
+
+          filtered.forEach((t, i) => {
+            const li = document.createElement('li')
+            li.className = 'card' + (t.done ? ' done' : '')
+            if (
+              state.focus.colIndex === cIndex &&
+              state.focus.itemIndex === i
+            ) {
+              li.classList.add('selected')
+              // Scroll into view if offscreen
+              setTimeout(
+                () =>
+                  li.scrollIntoView({ block: 'nearest', behavior: 'smooth' }),
+                0
+              )
+            }
+            li.tabIndex = -1 // programmatic focus only
+            li.dataset.id = t.id
+            li.innerHTML = `<p class="title">${escapeHtml(t.title)}</p>`
+            ul.appendChild(li)
+          })
+
+          wrapper.append(head, ul)
+          boardEl.appendChild(wrapper)
+        })
+
+        updateTitlebar()
+        saveState()
+      }
+
+      function updateTitlebar() {
+        document.title = `KB Warriors – ${getCurrentBoard().name}`
+      }
+
+      function escapeHtml(str) {
+        return str.replace(
+          /[&<>"']/g,
+          (s) =>
+            ({
+              '&': '&amp;',
+              '<': '&lt;',
+              '>': '&gt;',
+              '"': '&quot;',
+              "'": '&#39;',
+            }[s])
+        )
+      }
+
+      function applyFilter(list, q) {
+        if (!q) return list
+        q = q.toLowerCase()
+        return list.filter((t) => t.title.toLowerCase().includes(q))
+      }
+
+      // ======= Keyboard Handling =======
+      document.addEventListener('keydown', onKey)
+
+      function onKey(e) {
+        // If input overlays are open, handle there
+        if (helpOverlay.classList.contains('show')) {
+          if (e.key === '?' || e.key === 'Escape') {
+            e.preventDefault()
+            toggleHelp(false)
+          }
+          return
+        }
+
+        if (inputOverlay.classList.contains('show')) {
+          if (e.key === 'Escape') {
+            e.preventDefault()
+            closeInput()
+          }
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            submitInput()
+          }
+          return
+        }
+
+        // If focused in search, allow typing, but Esc clears
+        if (document.activeElement === searchEl) {
+          if (e.key === 'Escape') {
+            searchEl.value = ''
+            state.filter = ''
+            render()
+            announce('Search cleared')
+            searchEl.blur()
+          }
+          return // no global keys
+        }
+
+        // Global shortcuts
+        if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault()
+          searchEl.focus()
+          return
+        }
+        if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+          e.preventDefault()
+          toggleHelp()
+          return
+        }
+
+        if (e.ctrlKey && e.key.toLowerCase() === 'n') {
+          e.preventDefault()
+          newBoard()
+          return
+        }
+        if (e.ctrlKey && e.key === 'Delete') {
+          e.preventDefault()
+          deleteBoard()
+          return
+        }
+        if (e.ctrlKey && e.key === 'Tab') {
+          e.preventDefault()
+          switchBoard(e.shiftKey ? -1 : 1)
+          return
+        }
+
+        const { colIndex, itemIndex } = state.focus
+
+        switch (e.key) {
+          case 'ArrowLeft':
+            e.preventDefault()
+            moveFocusColumn(-1)
+            break
+          case 'ArrowRight':
+            e.preventDefault()
+            moveFocusColumn(1)
+            break
+          case 'ArrowUp':
+            e.preventDefault()
+            moveFocusItem(-1)
+            break
+          case 'ArrowDown':
+            e.preventDefault()
+            moveFocusItem(1)
+            break
+          case 'A':
+          case 'a':
+            e.preventDefault()
+            openInput('add')
+            break
+          case 'Enter':
+            e.preventDefault()
+            openInput('edit')
+            break
+          case 'Delete':
+            e.preventDefault()
+            deleteTask()
+            break
+          case ' ':
+            e.preventDefault()
+            toggleDone()
+            break // Space
+          case 'M':
+          case 'm':
+            e.preventDefault()
+            startMoveMode()
+            break
+          default:
+            if (e.ctrlKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+              e.preventDefault()
+              reorderTask(e.key === 'ArrowUp' ? -1 : 1)
+            }
+            break
+        }
+      }
+
+      // ======= Focus & Navigation =======
+      function moveFocusColumn(dir) {
+        const max = DEFAULT_COLUMNS.length - 1
+        let next = clamp(state.focus.colIndex + dir, 0, max)
+        state.focus.colIndex = next
+        clampItemIndex()
+        render()
+      }
+
+      function moveFocusItem(dir) {
+        const b = getCurrentBoard()
+        const colId = DEFAULT_COLUMNS[state.focus.colIndex].id
+        const list = applyFilter(b.columns[colId], state.filter)
+        const max = Math.max(0, list.length - 1)
+        let next = clamp(state.focus.itemIndex + dir, 0, max)
+        state.focus.itemIndex = next
+        render()
+      }
+
+      function clampItemIndex() {
+        const b = getCurrentBoard()
+        const colId = DEFAULT_COLUMNS[state.focus.colIndex].id
+        const list = applyFilter(b.columns[colId], state.filter)
+        const max = Math.max(0, list.length - 1)
+        state.focus.itemIndex = clamp(state.focus.itemIndex, 0, max)
+      }
+
+      function clamp(v, min, max) {
+        return Math.max(min, Math.min(max, v))
+      }
+
+      // ======= Tasks =======
+      function currentListAndIndex() {
+        const b = getCurrentBoard()
+        const col = DEFAULT_COLUMNS[state.focus.colIndex].id
+        const all = b.columns[col]
+        // Need to map filtered index back to original index if filter applied
+        if (!state.filter) {
+          return { list: all, index: state.focus.itemIndex, colId: col }
+        }
+        const filtered = applyFilter(all, state.filter)
+        const filteredItem = filtered[state.focus.itemIndex]
+        const index = all.findIndex(
+          (t) => t && filteredItem && t.id === filteredItem.id
+        )
+        return { list: all, index, colId: col }
+      }
+
+      function addTask(title) {
+        const b = getCurrentBoard()
+        const colId = DEFAULT_COLUMNS[state.focus.colIndex].id
+        b.columns[colId].push({ id: uid(), title })
+        state.focus.itemIndex =
+          applyFilter(b.columns[colId], state.filter).length - 1
+        render()
+        announce('Task added')
+      }
+
+      function editTask(newTitle) {
+        const { list, index } = currentListAndIndex()
+        if (index < 0 || !list[index]) return
+        list[index].title = newTitle
+        render()
+        announce('Task edited')
+      }
+
+      function deleteTask() {
+        const { list, index } = currentListAndIndex()
+        if (index < 0 || !list[index]) return
+        const removed = list.splice(index, 1)
+        clampItemIndex()
+        render()
+        if (removed.length) announce('Task deleted')
+      }
+
+      function toggleDone() {
+        const { list, index } = currentListAndIndex()
+        if (index < 0 || !list[index]) return
+        list[index].done = !list[index].done
+        render()
+        announce(list[index].done ? 'Marked done' : 'Marked not done')
+      }
+
+      function reorderTask(dir) {
+        const { list, index } = currentListAndIndex()
+        if (index < 0 || !list[index]) return
+        const target = clamp(index + dir, 0, list.length - 1)
+        if (target === index) return
+        const [item] = list.splice(index, 1)
+        list.splice(target, 0, item)
+        state.focus.itemIndex = target
+        render()
+        announce('Task moved')
+      }
+
+      // ======= Move Mode (FIXED) =======
+      function startMoveMode() {
+        if (moveModeActive) return // avoid duplicate listeners
+        moveModeActive = true
+        showToast(
+          'Move mode: use ←/→ to pick column, Enter to confirm, Esc to cancel'
+        )
+
+        const onMoveKey = (e) => {
+          // Only intercept the keys we care about in move mode.
+          const keysWeHandle = ['Escape', 'ArrowLeft', 'ArrowRight', 'Enter']
+          if (!keysWeHandle.includes(e.key)) return
+
+          // prevent global handlers from also handling this same keypress
+          e.preventDefault()
+          e.stopImmediatePropagation()
+          e.stopPropagation()
+
+          if (e.key === 'Escape') {
+            hideToast()
+            moveModeActive = false
+            document.removeEventListener('keydown', onMoveKey, true)
+            announce('Move cancelled')
+            return
+          }
+
+          const { list, index, colId } = currentListAndIndex()
+          if (index < 0) return
+
+          if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            const cur = DEFAULT_COLUMNS.findIndex((c) => c.id === colId)
+            const dir = e.key === 'ArrowLeft' ? -1 : 1
+            const nextColIndex = clamp(cur + dir, 0, DEFAULT_COLUMNS.length - 1)
+            if (nextColIndex !== cur) {
+              const nextColId = DEFAULT_COLUMNS[nextColIndex].id
+              // remove from current list
+              const [item] = list.splice(index, 1)
+              // add to target list (end)
+              const targetList = getCurrentBoard().columns[nextColId]
+              targetList.push(item)
+
+              // update focus: column becomes target column
+              state.focus.colIndex = nextColIndex
+
+              // compute filtered index inside the target list (so focus maps to filtered rendering)
+              const filteredTarget = applyFilter(targetList, state.filter)
+              let newFilteredIndex = filteredTarget.findIndex(
+                (t) => t.id === item.id
+              )
+
+              // if the moved item is not visible because of an active filter,
+              // fallback to nearest valid index (last item in filtered list or 0)
+              if (newFilteredIndex === -1) {
+                newFilteredIndex =
+                  filteredTarget.length > 0 ? filteredTarget.length - 1 : 0
+              }
+              state.focus.itemIndex = newFilteredIndex
+
+              render()
+            }
+          }
+
+          if (e.key === 'Enter') {
+            hideToast()
+            moveModeActive = false
+            document.removeEventListener('keydown', onMoveKey, true)
+            announce('Task moved to new column')
+          }
+        }
+
+        document.addEventListener('keydown', onMoveKey, true)
+      }
+
+      // ======= Overlays =======
+      function toggleHelp(force) {
+        const show =
+          typeof force === 'boolean'
+            ? force
+            : !helpOverlay.classList.contains('show')
+        helpOverlay.classList.toggle('show', show)
+        if (show) {
+          // Move focus inside dialog
+          helpOverlay.querySelector('.modal').focus({ preventScroll: true })
+        }
+      }
+
+      function openInput(mode) {
+        inputOverlay.dataset.mode = mode // 'add' or 'edit'
+        const current = currentTaskTitle()
+        taskInput.value = mode === 'edit' ? current || '' : ''
+        inputOverlay.classList.add('show')
+        setTimeout(() => taskInput.focus(), 0)
+      }
+
+      function closeInput() {
+        inputOverlay.classList.remove('show')
+        taskInput.blur()
+      }
+
+      function currentTaskTitle() {
+        const { list, index } = currentListAndIndex()
+        return index >= 0 && list[index] ? list[index].title : ''
+      }
+
+      function submitInput() {
+        const mode = inputOverlay.dataset.mode
+        const value = taskInput.value.trim()
+        if (!value) {
+          closeInput()
+          return
+        }
+        if (mode === 'add') addTask(value)
+        else editTask(value)
+        closeInput()
+      }
+
+      // ======= Boards =======
+      function newBoard() {
+        const name = prompt('Board name?')
+        if (!name) return
+        state.boards.push({
+          id: uid(),
+          name,
+          columns: { todo: [], inprogress: [], done: [] },
+        })
+        state.currentBoardIndex = state.boards.length - 1
+        state.focus = { colIndex: 0, itemIndex: 0 }
+        render()
+        announce('Board created')
+      }
+
+      function deleteBoard() {
+        if (state.boards.length === 1) {
+          announce('Cannot delete the only board')
+          return
+        }
+        const ok = confirm(`Delete board: ${getCurrentBoard().name}?`)
+        if (!ok) return
+        state.boards.splice(state.currentBoardIndex, 1)
+        state.currentBoardIndex = Math.max(0, state.currentBoardIndex - 1)
+        state.focus = { colIndex: 0, itemIndex: 0 }
+        render()
+        announce('Board deleted')
+      }
+
+      function switchBoard(delta) {
+        const n = state.boards.length
+        state.currentBoardIndex = (state.currentBoardIndex + delta + n) % n
+        state.focus = { colIndex: 0, itemIndex: 0 }
+        render()
+        showToast(`Board: ${getCurrentBoard().name}`)
+      }
+
+      // ======= Search =======
+      searchEl.addEventListener('input', () => {
+        state.filter = searchEl.value.trim()
+        state.focus.itemIndex = 0
+        render()
+      })
+
+      // ======= Toast =======
+      let toastTimer = null
+      function showToast(msg) {
+        toastEl.textContent = msg
+        toastEl.classList.add('show')
+        clearTimeout(toastTimer)
+        toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200)
+      }
+      function hideToast() {
+        toastEl.classList.remove('show')
+      }
+      function announce(msg) {
+        showToast(msg)
+      }
+
+      // ======= Init =======
+      render()
+      // Give quick guidance on first load
+      setTimeout(
+        () => showToast('Tip: Press ? for shortcuts. Press A to add a task.'),
+        800
+      )
+    </script>
+  </body>
+</html>
